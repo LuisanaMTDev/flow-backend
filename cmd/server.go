@@ -1,26 +1,25 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/LuisanaMTDev/flow-backend/internal/controllers"
-	"github.com/a-h/templ"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/LuisanaMTDev/flow-backend/internal/middleware"
 )
 
 func main() {
-	router := echo.New()
-	router.Use(middleware.Logger())
-	router.Use(middleware.Recover())
+	handlers := http.NewServeMux()
 
-	router.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
+	handlers.HandleFunc("POST /register", controllers.Register)
+	handlers.HandleFunc("POST /login", controllers.Login)
+	handlers.HandleFunc("POST /logout", controllers.Logout)
+	handlers.HandleFunc("GET /protected", middleware.MakeHandler(controllers.CheckAuthHealth, middleware.Authorization))
+	
 
-	viewsRouter := router.Group("/views")
-	viewsRouter.GET("/subjects", controllers.ReadSubjects)
-	viewsRouter.POST("/subject", controllers.AddSubject) // With query parameters
-	viewsRouter.DELETE("/subject/:id", controllers.DeleteSubject)
-	viewsRouter.PUT("/subject/:id", controllers.ModifySubject) // With query parameters
+	corsMiddleware := middleware.CORSMiddleware(middleware.DefaultCORSConfig())
+	handler := corsMiddleware(handlers)
+
+	server := http.Server{Handler: handler, Addr: ":4322"}
+	log.Fatal(server.ListenAndServe())
 }
